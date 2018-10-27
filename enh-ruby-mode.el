@@ -913,7 +913,9 @@ modifications to the buffer."
         (setq pos (next-single-property-change pos 'indent (current-buffer) limit))
         (when (< pos limit)
           (setq prop (get-text-property pos 'indent))))
-      (setq col (- pos start-pos -1))
+      (setq col (- (save-excursion (goto-char pos) (current-column))
+                   (save-excursion (goto-char start-pos) (current-column))
+                   -1))
 
       (cond
        ((eq prop 'l)                    ; TODO: comment wtf these mean
@@ -980,18 +982,31 @@ modifications to the buffer."
                     pc))
 
       ((= max bc)
-       (if (eq 'd (get-text-property (+ start-pos bc -1) 'indent))
-           (+ (enh-ruby-calculate-indent-1 (+ start-pos bc -1) start-pos)
+       (if (eq 'd (get-text-property
+                   (save-excursion
+                     (goto-char start-pos)
+                     (move-to-column (+ (current-column) bc))
+                     (1- (point)))
+                   'indent))
+           (+ (enh-ruby-calculate-indent-1
+               (save-excursion
+                 (goto-char start-pos)
+                 (move-to-column (+ (current-column) bc))
+                 (1- (point)))
+               start-pos)
               enh-ruby-indent-level)
          (+ bc enh-ruby-indent-level -1)))
 
       ((= max npc)
-       (goto-char (+ start-pos npc))
+       (goto-char start-pos)
+       (move-to-column (+ (current-column) npc))
        (enh-ruby-backward-sexp)
        (enh-ruby-calculate-indent-1 (point) (line-beginning-position)))
 
       ((= max nbc)
-       (goto-char (+ start-pos nbc -1))
+       (goto-char start-pos)
+       (move-to-column (+ (current-column) nbc))
+       (backward-char)
        (enh-ruby-backward-sexp)
        (enh-ruby-calculate-indent-1 (point) (line-beginning-position)))
 
